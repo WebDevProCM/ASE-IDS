@@ -1,18 +1,41 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+
+interface Warehouse {
+  _id: string;
+  name: string;
+  location: string;
+  region: string;
+}
 
 export default function RegisterPage() {
   const router = useRouter();
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
     confirmPassword: '',
+    preferredWarehouse: '',
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    fetchWarehouses();
+  }, []);
+
+  const fetchWarehouses = async () => {
+    try {
+      const res = await fetch('/api/warehouses');
+      const data = await res.json();
+      setWarehouses(data);
+    } catch (error) {
+      console.error('Failed to fetch warehouses:', error);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,6 +56,7 @@ export default function RegisterPage() {
           name: formData.name,
           email: formData.email,
           password: formData.password,
+          preferredWarehouse: formData.preferredWarehouse,
         }),
       });
 
@@ -52,8 +76,8 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8">
         <div>
           <h2 className="text-3xl font-bold text-center">Create Account</h2>
           <p className="text-center text-gray-600 mt-2">
@@ -123,6 +147,29 @@ export default function RegisterPage() {
                 onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               />
+            </div>
+
+            <div>
+              <label htmlFor="warehouse" className="block text-sm font-medium text-gray-700">
+                Nearest Warehouse Location
+              </label>
+              <select
+                id="warehouse"
+                required
+                value={formData.preferredWarehouse}
+                onChange={(e) => setFormData({...formData, preferredWarehouse: e.target.value})}
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">Select your nearest warehouse</option>
+                {warehouses.map((warehouse) => (
+                  <option key={warehouse._id} value={warehouse._id}>
+                    {warehouse.name} - {warehouse.location} ({warehouse.region})
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1 text-xs text-gray-500">
+                Select the warehouse closest to your location for faster delivery
+              </p>
             </div>
           </div>
 

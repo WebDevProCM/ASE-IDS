@@ -9,6 +9,7 @@ export interface IUser {
   name: string;
   role: UserRole;
   rdcId?: mongoose.Types.ObjectId;
+  preferredWarehouse?: mongoose.Types.ObjectId;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -24,10 +25,11 @@ const userSchema = new mongoose.Schema<IUser>({
     required: true 
   },
   rdcId: { type: mongoose.Schema.Types.ObjectId, ref: 'RDC' },
+  preferredWarehouse: { type: mongoose.Schema.Types.ObjectId, ref: 'RDC' },
   isActive: { type: Boolean, default: true },
 }, { timestamps: true });
 
-userSchema.pre('save', async function(next) {
+userSchema.pre('save', async function() {
   if (!this.isModified('password')) return;
   this.password = await bcrypt.hash(this.password, 10);
 });

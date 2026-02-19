@@ -2,43 +2,56 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import User from '@/models/user';
 import { withAuth } from '@/lib/middleware';
+import bcrypt from 'bcryptjs';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function getUsers(req: NextRequest, user: any) {
+async function getUsers(req: NextRequest) {
   try {
     await dbConnect();
-    
+
     const { searchParams } = new URL(req.url);
-    const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : undefined;
+    const limitParam = searchParams.get('limit');
+    const limit = limitParam !== null ? parseInt(limitParam) : undefined;
 
     let usersQuery = User.find({})
-      .populate('rdcId', 'name location')
+      .populate({
+        path: 'rdcId',
+        select: 'name location',
+        strictPopulate: false,
+      })
+      .populate({
+        path: 'preferredWarehouse',
+        select: 'name location',
+        strictPopulate: false,
+      })
       .select('-password')
       .sort({ createdAt: -1 });
 
-    if (limit) {
+    if (limit !== undefined && !isNaN(limit)) {
       usersQuery = usersQuery.limit(limit);
     }
 
-    const users = await usersQuery;
+    const users = await usersQuery.exec();
     return NextResponse.json(users);
   } catch (error) {
     console.error('Get users error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function createUser(req: NextRequest, user: any) {
+async function createUser(req: NextRequest) {
   try {
     await dbConnect();
-    
-    const { name, email, password, role, rdcId } = await req.json();
 
-    // Check if user already exists
+    const { name, email, password, role, rdcId, preferredWarehouse } =
+      await req.json();
+
+    if (!name || !email || !password || !role) {
+      return NextResponse.json(
+        { error: 'Missing required fields' },
+        { status: 400 }
+      );
+    }
+
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return NextResponse.json(
@@ -47,14 +60,26 @@ async function createUser(req: NextRequest, user: any) {
       );
     }
 
-    const newUser = await User.create({
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const userData: any = {
       name,
       email,
-      password,
+      password: hashedPassword,
       role,
-      rdcId: rdcId || null,
       isActive: true,
-    });
+    };
+
+    if (role === 'customer' && preferredWarehouse) {
+      userData.preferredWarehouse = preferredWarehouse;
+    }
+
+    if ((role === 'rdc_staff' || role === 'logistics') && rdcId) {
+      userData.rdcId = rdcId;
+    }
+
+    const newUser = await User.create(userData);
 
     return NextResponse.json({
       message: 'User created successfully',
@@ -67,10 +92,7 @@ async function createUser(req: NextRequest, user: any) {
     });
   } catch (error) {
     console.error('Create user error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 

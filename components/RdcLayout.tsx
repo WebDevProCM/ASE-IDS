@@ -8,6 +8,7 @@ import {
   CubeIcon,
   ShoppingCartIcon,
   ArrowRightOnRectangleIcon,
+  ArrowPathIcon,
 } from '@heroicons/react/24/outline';
 
 interface RdcLayoutProps {
@@ -18,6 +19,7 @@ const navigation = [
   { name: 'Dashboard', href: '/rdc', icon: HomeIcon },
   { name: 'Inventory', href: '/rdc/inventory', icon: CubeIcon },
   { name: 'Orders', href: '/rdc/orders', icon: ShoppingCartIcon },
+  { name: 'Stock Transfers', href: '/rdc/transfers', icon: ArrowPathIcon },
 ];
 
 export default function RdcLayout({ children }: RdcLayoutProps) {
@@ -25,13 +27,13 @@ export default function RdcLayout({ children }: RdcLayoutProps) {
   const [rdcName, setRdcName] = useState('Loading...');
 
   useEffect(() => {
-    // Fetch user's RDC info
     const fetchUserInfo = async () => {
       try {
         const res = await fetch('/api/auth/me');
         const data = await res.json();
         if (data.user?.rdcId?.name) {
           setRdcName(data.user.rdcId.name);
+          localStorage.setItem('rdcId', data.user.rdcId._id);
         }
       } catch (error) {
         console.error('Failed to fetch user info:', error);

@@ -9,28 +9,37 @@ interface User {
   name: string;
   email: string;
   role: string;
-  rdcId?: { name: string };
+  rdcId?: { name: string; _id: string };
+  preferredWarehouse?: { name: string; _id: string };
   isActive: boolean;
   createdAt: string;
 }
 
+interface Warehouse {
+  _id: string;
+  name: string;
+  location: string;
+  region: string;
+}
+
 export default function UserManagement() {
   const [users, setUsers] = useState<User[]>([]);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [rdcs, setRdcs] = useState<any[]>([]);
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
     role: 'customer',
     rdcId: '',
+    preferredWarehouse: '',
   });
 
   useEffect(() => {
     fetchUsers();
-    fetchRDCs();
+    fetchWarehouses();
   }, []);
 
   const fetchUsers = async () => {
@@ -45,23 +54,35 @@ export default function UserManagement() {
     }
   };
 
-  const fetchRDCs = async () => {
+  const fetchWarehouses = async () => {
     try {
-      const res = await fetch('/api/admin/rdcs');
+      const res = await fetch('/api/warehouses');
       const data = await res.json();
-      setRdcs(data);
+      setWarehouses(data);
     } catch (error) {
-      console.error('Failed to fetch RDCs:', error);
+      console.error('Failed to fetch warehouses:', error);
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      const userData = {
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+        role: formData.role,
+        ...(formData.role === 'customer' 
+          ? { preferredWarehouse: formData.preferredWarehouse }
+          : (formData.role === 'rdc_staff' || formData.role === 'logistics')
+          ? { rdcId: formData.rdcId }
+          : {})
+      };
+
       const res = await fetch('/api/admin/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(userData),
       });
 
       if (res.ok) {
@@ -73,6 +94,7 @@ export default function UserManagement() {
           password: '',
           role: 'customer',
           rdcId: '',
+          preferredWarehouse: '',
         });
       }
     } catch (error) {
@@ -104,13 +126,37 @@ export default function UserManagement() {
     }
   };
 
+  const editUser = (user: User) => {
+    setEditingUser(user);
+    setFormData({
+      name: user.name,
+      email: user.email,
+      password: '',
+      role: user.role,
+      rdcId: user.rdcId?._id || '',
+      preferredWarehouse: user.preferredWarehouse?._id || '',
+    });
+    setShowModal(true);
+  };
+
   return (
     <AdminLayout>
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <h1 className="text-2xl font-bold">User Management</h1>
           <button
-            onClick={() => setShowModal(true)}
+            onClick={() => {
+              setEditingUser(null);
+              setFormData({
+                name: '',
+                email: '',
+                password: '',
+                role: 'customer',
+                rdcId: '',
+                preferredWarehouse: '',
+              });
+              setShowModal(true);
+            }}
             className="w-full sm:w-auto bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center justify-center"
           >
             <UserPlusIcon className="h-5 w-5 mr-2" />
@@ -130,7 +176,7 @@ export default function UserManagement() {
                   <tr>
                     <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">User</th>
                     <th className="hidden sm:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
-                    <th className="hidden md:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">RDC</th>
+                    <th className="hidden md:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Location</th>
                     <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                     <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                   </tr>
@@ -153,7 +199,9 @@ export default function UserManagement() {
                         </span>
                       </td>
                       <td className="hidden md:table-cell px-6 py-4 text-sm">
-                        {user.rdcId?.name || '-'}
+                        {user.role === 'customer' 
+                          ? user.preferredWarehouse?.name || 'Not set'
+                          : user.rdcId?.name || '-'}
                       </td>
                       <td className="px-4 sm:px-6 py-4">
                         <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
@@ -163,14 +211,22 @@ export default function UserManagement() {
                         </span>
                       </td>
                       <td className="px-4 sm:px-6 py-4">
-                        <button
-                          onClick={() => toggleUserStatus(user._id, user.isActive)}
-                          className={`text-sm font-medium ${
-                            user.isActive ? 'text-red-600 hover:text-red-900' : 'text-green-600 hover:text-green-900'
-                          }`}
-                        >
-                          {user.isActive ? 'Deactivate' : 'Activate'}
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => editUser(user)}
+                            className="text-blue-600 hover:text-blue-900"
+                          >
+                            <PencilIcon className="h-5 w-5" />
+                          </button>
+                          <button
+                            onClick={() => toggleUserStatus(user._id, user.isActive)}
+                            className={`text-sm font-medium ${
+                              user.isActive ? 'text-red-600 hover:text-red-900' : 'text-green-600 hover:text-green-900'
+                            }`}
+                          >
+                            {user.isActive ? 'Deactivate' : 'Activate'}
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -185,7 +241,7 @@ export default function UserManagement() {
             <div className="relative top-20 mx-auto max-w-md bg-white rounded-lg shadow-xl">
               <div className="p-6">
                 <h3 className="text-lg font-medium text-gray-900 mb-4">
-                  Add New User
+                  {editingUser ? 'Edit User' : 'Add New User'}
                 </h3>
                 
                 <form onSubmit={handleSubmit} className="space-y-4">
@@ -211,16 +267,18 @@ export default function UserManagement() {
                     />
                   </div>
                   
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Password</label>
-                    <input
-                      type="password"
-                      required
-                      value={formData.password}
-                      onChange={(e) => setFormData({...formData, password: e.target.value})}
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-                    />
-                  </div>
+                  {!editingUser && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Password</label>
+                      <input
+                        type="password"
+                        required
+                        value={formData.password}
+                        onChange={(e) => setFormData({...formData, password: e.target.value})}
+                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                      />
+                    </div>
+                  )}
                   
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Role</label>
@@ -237,9 +295,32 @@ export default function UserManagement() {
                     </select>
                   </div>
                   
+                  {formData.role === 'customer' && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">
+                        Preferred Warehouse Location
+                      </label>
+                      <select
+                        value={formData.preferredWarehouse}
+                        onChange={(e) => setFormData({...formData, preferredWarehouse: e.target.value})}
+                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                      >
+                        <option value="">Select nearest warehouse</option>
+                        {warehouses.map((warehouse) => (
+                          <option key={warehouse._id} value={warehouse._id}>
+                            {warehouse.name} - {warehouse.location}
+                          </option>
+                        ))}
+                      </select>
+                      <p className="mt-1 text-xs text-gray-500">
+                        Customers orders will prioritize this warehouse
+                      </p>
+                    </div>
+                  )}
+                  
                   {(formData.role === 'rdc_staff' || formData.role === 'logistics') && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">Assign RDC</label>
+                      <label className="block text-sm font-medium text-gray-700">Assign to RDC</label>
                       <select
                         value={formData.rdcId}
                         onChange={(e) => setFormData({...formData, rdcId: e.target.value})}
@@ -247,9 +328,9 @@ export default function UserManagement() {
                         className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
                       >
                         <option value="">Select RDC</option>
-                        {rdcs.map((rdc) => (
-                          <option key={rdc._id} value={rdc._id}>
-                            {rdc.name} - {rdc.location}
+                        {warehouses.map((warehouse) => (
+                          <option key={warehouse._id} value={warehouse._id}>
+                            {warehouse.name} - {warehouse.location}
                           </option>
                         ))}
                       </select>
@@ -259,7 +340,10 @@ export default function UserManagement() {
                   <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4">
                     <button
                       type="button"
-                      onClick={() => setShowModal(false)}
+                      onClick={() => {
+                        setShowModal(false);
+                        setEditingUser(null);
+                      }}
                       className="w-full sm:w-auto px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300"
                     >
                       Cancel
@@ -268,7 +352,7 @@ export default function UserManagement() {
                       type="submit"
                       className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
                     >
-                      Create User
+                      {editingUser ? 'Update' : 'Create'}
                     </button>
                   </div>
                 </form>

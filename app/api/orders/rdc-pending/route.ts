@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Order from '@/models/order';
-import '@/models/user';
-import '@/models/product';
 import { withAuth } from '@/lib/middleware';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -17,23 +15,17 @@ async function getRdcPendingOrders(req: NextRequest, user: any) {
       );
     }
 
-    // Find all order items for this RDC that are pending or processing
     const orders = await Order.find({
       'items.rdcId': user.rdcId,
-      'items.status': { $in: ['pending', 'processing'] }
     })
     .populate('customerId', 'name')
     .populate('items.productId', 'name unit')
     .sort({ createdAt: -1 });
 
-    // Extract only the items belonging to this RDC
     const rdcItems = orders.flatMap(order => 
       order.items
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .filter((item: any) => 
-          item.rdcId.toString() === user.rdcId && 
-          ['pending', 'processing'].includes(item.status)
-        )
+        .filter((item: any) => item.rdcId.toString() === user.rdcId)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .map((item: any) => ({
           ...item.toObject(),
