@@ -25,7 +25,7 @@ const userSchema = new mongoose.Schema<IUser>({
     required: true 
   },
   rdcId: { type: mongoose.Schema.Types.ObjectId, ref: 'RDC' },
-  preferredWarehouse: { type: mongoose.Schema.Types.ObjectId, ref: 'RDC' },
+  preferredWarehouse: { type: mongoose.Schema.Types.ObjectId, ref: 'RDC', default: null },
   isActive: { type: Boolean, default: true },
 }, { timestamps: true });
 
