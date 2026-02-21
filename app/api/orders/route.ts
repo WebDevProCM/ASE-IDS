@@ -4,6 +4,8 @@ import Order from '@/models/order';
 import Inventory from '@/models/inventory';
 import Product from '@/models/product';
 import { withAuth } from '@/lib/middleware';
+import mongoose from 'mongoose';
+
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function createOrder(req: NextRequest, user: any) {
@@ -33,10 +35,23 @@ async function createOrder(req: NextRequest, user: any) {
         );
       }
 
-      const inventory = await Inventory.findOne({
+      let inventory;
+
+      console.log("userOrder: ", user);
+      inventory = await Inventory.findOne({
+        rdcId: new mongoose.Types.ObjectId(user.rdcId),
         productId: item.productId,
         quantity: { $gte: item.quantity }
       }).populate('rdcId');
+
+
+      if (!inventory) {
+        console.log("false inventory");
+        inventory = await Inventory.findOne({
+          productId: item.productId,
+          quantity: { $gte: item.quantity }
+        }).populate('rdcId');
+      }
 
       if (!inventory) {
         return NextResponse.json(

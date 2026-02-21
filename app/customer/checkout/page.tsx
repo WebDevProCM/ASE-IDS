@@ -223,7 +223,7 @@ export default function CheckoutPage() {
                       value={cardDetails.cardName}
                       onChange={(e) => setCardDetails({...cardDetails, cardName: e.target.value})}
                       className="w-full border border-gray-300 rounded-md shadow-sm p-3 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="John Doe"
+                      placeholder=""
                     />
                   </div>
 
