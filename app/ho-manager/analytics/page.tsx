@@ -7,7 +7,11 @@ import {
   CheckCircleIcon,
   XCircleIcon,
   ClockIcon,
+  DocumentArrowDownIcon,
 } from '@heroicons/react/24/outline';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 
 interface DeliveryReport {
   totalDeliveries: number;
@@ -46,6 +50,59 @@ export default function AnalyticsPage() {
     }
   };
 
+  const exportPDF = () => {
+    if (!report) return;
+    
+    const doc = new jsPDF();
+    
+    doc.setFontSize(18);
+    doc.text('Performance Analytics Report', 14, 22);
+    doc.setFontSize(11);
+    doc.text(`Period: ${dateRange.startDate} to ${dateRange.endDate}`, 14, 32);
+    doc.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 38);
+    
+    doc.setFontSize(14);
+    doc.text('Delivery Performance Summary', 14, 48);
+    
+    doc.setFontSize(11);
+    doc.text(`Total Deliveries: ${report.totalDeliveries}`, 14, 58);
+    doc.text(`Completed Deliveries: ${report.completedDeliveries}`, 14, 64);
+    doc.text(`Failed Deliveries: ${report.failedDeliveries}`, 14, 70);
+    doc.text(`On-Time Deliveries: ${report.onTimeDeliveries}`, 14, 76);
+    doc.text(`On-Time Rate: ${report.onTimeRate}%`, 14, 82);
+    doc.text(`Average Delivery Time: ${report.averageDeliveryTime} hours`, 14, 88);
+    
+    doc.setFontSize(14);
+    doc.text('Delivery Status Breakdown', 14, 102);
+    
+    const statusData = report.byStatus.map(status => [
+      status._id.replace(/_/g, ' ').toUpperCase(),
+      status.count.toString(),
+      `${((status.count / report.totalDeliveries) * 100).toFixed(1)}%`
+    ]);
+    
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    autoTable(doc,{
+      startY: 106,
+      head: [['Status', 'Count', 'Percentage']],
+      body: statusData,
+    });
+    
+    doc.setFontSize(14);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    doc.text('Key Insights', 14, (doc as any).lastAutoTable.finalY + 10);
+    
+    doc.setFontSize(11);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    doc.text(`• On-time delivery rate is ${report.onTimeRate}%`, 14, (doc as any).lastAutoTable.finalY + 20);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    doc.text(`• ${report.failedDeliveries} deliveries failed (${((report.failedDeliveries / report.totalDeliveries) * 100).toFixed(1)}%)`, 14, (doc as any).lastAutoTable.finalY + 26);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    doc.text(`• Average delivery takes ${report.averageDeliveryTime} hours`, 14, (doc as any).lastAutoTable.finalY + 32);
+    
+    doc.save(`performance-analytics-${dateRange.startDate}-to-${dateRange.endDate}.pdf`);
+  };
+
   if (loading) {
     return (
       <HoLayout>
@@ -59,9 +116,19 @@ export default function AnalyticsPage() {
   return (
     <HoLayout>
       <div className="p-6">
-        <h1 className="text-2xl font-bold mb-6">Performance Analytics</h1>
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold">Performance Analytics</h1>
+          {report && (
+            <button
+              onClick={exportPDF}
+              className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 flex items-center"
+            >
+              <DocumentArrowDownIcon className="h-5 w-5 mr-2" />
+              Export PDF
+            </button>
+          )}
+        </div>
 
-        {/* Date Range Filter */}
         <div className="bg-white rounded-lg shadow p-4 mb-6">
           <div className="flex items-center space-x-4">
             <div>
@@ -87,7 +154,6 @@ export default function AnalyticsPage() {
 
         {report && (
           <>
-            {/* Delivery Performance Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
               <div className="bg-white rounded-lg shadow p-6">
                 <div className="flex items-center">
@@ -105,7 +171,7 @@ export default function AnalyticsPage() {
 
               <div className="bg-white rounded-lg shadow p-6">
                 <div className="flex items-center">
-                  <div className="bg-blue-500 p-3 rounded-lg">
+                  <div className="bg-green-500 p-3 rounded-lg">
                     <CheckCircleIcon className="h-6 w-6 text-white" />
                   </div>
                   <div className="ml-4">
@@ -119,7 +185,7 @@ export default function AnalyticsPage() {
 
               <div className="bg-white rounded-lg shadow p-6">
                 <div className="flex items-center">
-                  <div className="bg-blue-500 p-3 rounded-lg">
+                  <div className="bg-red-500 p-3 rounded-lg">
                     <XCircleIcon className="h-6 w-6 text-white" />
                   </div>
                   <div className="ml-4">
@@ -133,7 +199,7 @@ export default function AnalyticsPage() {
 
               <div className="bg-white rounded-lg shadow p-6">
                 <div className="flex items-center">
-                  <div className="bg-blue-500 p-3 rounded-lg">
+                  <div className="bg-purple-500 p-3 rounded-lg">
                     <ClockIcon className="h-6 w-6 text-white" />
                   </div>
                   <div className="ml-4">
@@ -146,7 +212,6 @@ export default function AnalyticsPage() {
               </div>
             </div>
 
-            {/* Delivery Status Breakdown */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="bg-white rounded-lg shadow p-6">
                 <h2 className="text-lg font-semibold mb-4">Delivery Status Breakdown</h2>
@@ -187,7 +252,7 @@ export default function AnalyticsPage() {
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
                       <div
-                        className="bg-blue-600 h-2 rounded-full"
+                        className="bg-green-600 h-2 rounded-full"
                         style={{
                           width: `${(report.onTimeDeliveries / report.completedDeliveries) * 100}%`,
                         }}
@@ -217,7 +282,7 @@ export default function AnalyticsPage() {
                         {report.failedDeliveries} deliveries failed ({((report.failedDeliveries / report.totalDeliveries) * 100).toFixed(1)}%)
                       </li>
                       <li className="flex items-center">
-                        <span className="w-2 h-2 rounded-full mr-2 bg-blue-500"></span>
+                        <span className="w-2 h-2 rounded-full mr-2 bg-purple-500"></span>
                         Average delivery takes {report.averageDeliveryTime} hours
                       </li>
                     </ul>

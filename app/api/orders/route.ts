@@ -39,7 +39,7 @@ async function createOrder(req: NextRequest, user: any) {
 
       console.log("userOrder: ", user);
       inventory = await Inventory.findOne({
-        rdcId: new mongoose.Types.ObjectId(user.rdcId),
+        rdcId: user.rdcId,
         productId: item.productId,
         quantity: { $gte: item.quantity }
       }).populate('rdcId');

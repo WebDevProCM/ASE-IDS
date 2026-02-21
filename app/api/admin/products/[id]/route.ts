@@ -29,8 +29,12 @@ async function updateProduct(
     if (typeof body.description === 'string') updates.description = body.description;
     if (typeof body.price === 'number') updates.price = body.price;
     if (typeof body.category === 'string') updates.category = body.category;
+    if (typeof body.unit === 'string') updates.category = body.unit;
     if (typeof body.isActive === 'boolean') updates.isActive = body.isActive;
-    if (typeof body.imageUrl === 'string') updates.imageUrl = body.imageUrl;
+    if (typeof body.image === 'string') updates.image = body.image;
+
+    console.log("updates.imageUrl: ", updates.image);
+    console.log("body.image: ", body.image);
 
     const updatedProduct = await Product.findByIdAndUpdate(
       id,

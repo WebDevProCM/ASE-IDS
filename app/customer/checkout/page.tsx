@@ -122,8 +122,8 @@ export default function CheckoutPage() {
         {/* Progress Steps */}
         <div className="mb-8">
           <div className="flex items-center">
-            <div className={`flex items-center ${step >= 1 ? 'text-blue-600' : 'text-gray-400'}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify border-2 ${
+            <div className={`flex items-center just ${step >= 1 ? 'text-blue-600' : 'text-gray-400'}`}>
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${
                 step >= 1 ? 'border-blue-600 bg-blue-600 text-white' : 'border-gray-300'
               }`}>
                 1
@@ -132,7 +132,7 @@ export default function CheckoutPage() {
             </div>
             <div className={`flex-1 h-0.5 mx-4 ${step >= 2 ? 'bg-blue-600' : 'bg-gray-300'}`} />
             <div className={`flex items-center ${step >= 2 ? 'text-blue-600' : 'text-gray-400'}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify border-2 ${
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${
                 step >= 2 ? 'border-blue-600 bg-blue-600 text-white' : 'border-gray-300'
               }`}>
                 2

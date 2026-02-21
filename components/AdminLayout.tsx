@@ -24,6 +24,7 @@ const navigation = [
   { name: 'Dashboard', href: '/admin', icon: HomeIcon },
   { name: 'User Management', href: '/admin/users', icon: UsersIcon },
   { name: 'Product Management', href: '/admin/products', icon: CubeIcon },
+  { name: 'Inventory Management', href: '/admin/inventory', icon: CubeIcon },
   { name: 'RDC Management', href: '/admin/rdcs', icon: BuildingOfficeIcon },
   { name: 'Orders', href: '/admin/orders', icon: ShoppingCartIcon },
   { name: 'Reports', href: '/admin/reports', icon: ChartBarIcon },

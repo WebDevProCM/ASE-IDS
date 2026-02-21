@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
       userId: user._id.toString(),
       email: user.email,
       role: user.role,
-      rdcId: user?.preferredWarehouse === null ? user.rdcId?._id?.toString() :  user?.preferredWarehouse?.toString(),
+      rdcId: user?.preferredWarehouse === null ? user.rdcId :  user?.preferredWarehouse,
     });
 
     (await cookies()).set('token', token, {

@@ -2,7 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import HoLayout from '@/components/HoLayout';
-import { CubeIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
+import { CubeIcon, ExclamationTriangleIcon, DocumentArrowDownIcon } from '@heroicons/react/24/outline';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import 'jspdf-autotable';
 
 interface InventoryReport {
   totalProducts: number;
@@ -40,6 +43,66 @@ export default function InventoryReports() {
     }
   };
 
+  const exportPDF = () => {
+    if (!report) return;
+    
+    const doc = new jsPDF();
+    
+    doc.setFontSize(18);
+    doc.text('Inventory Report', 14, 22);
+    doc.setFontSize(11);
+    doc.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 32);
+    
+    doc.setFontSize(14);
+    doc.text('Summary', 14, 42);
+    
+    doc.setFontSize(11);
+    doc.text(`Total Products: ${report.totalProducts}`, 14, 52);
+    doc.text(`Total Inventory Value: Rs. ${report.totalValue.toLocaleString()}`, 14, 58);
+    
+    if (report.lowStockItems.length > 0) {
+      doc.setFontSize(14);
+      doc.text('Low Stock Items', 14, 72);
+      
+      const lowStockData = report.lowStockItems.map(item => [
+        item.productName,
+        item.rdcName,
+        item.quantity.toString(),
+        item.minStockLevel.toString()
+      ]);
+      
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      autoTable(doc,{
+        startY: 76,
+        head: [['Product', 'RDC', 'Current Stock', 'Min Level']],
+        body: lowStockData,
+      });
+      
+      doc.setFontSize(14);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      doc.text('Stock by RDC', 14, (doc as any).lastAutoTable.finalY + 10);
+    } else {
+      doc.setFontSize(14);
+      doc.text('Stock by RDC', 14, 72);
+    }
+    
+    const rdcData = report.stockByRDC.map(rdc => [
+      rdc.rdcName,
+      rdc.itemCount.toString(),
+      `Rs. ${rdc.totalValue.toLocaleString()}`
+    ]);
+    
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    autoTable(doc,{
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      startY: report.lowStockItems.length > 0 ? (doc as any).lastAutoTable.finalY + 14 : 76,
+      head: [['RDC', 'Items', 'Total Value']],
+      body: rdcData,
+    });
+    
+    doc.save(`inventory-report-${new Date().toISOString().split('T')[0]}.pdf`);
+  };
+
   if (loading) {
     return (
       <HoLayout>
@@ -53,11 +116,21 @@ export default function InventoryReports() {
   return (
     <HoLayout>
       <div className="p-6">
-        <h1 className="text-2xl font-bold mb-6">Inventory Reports</h1>
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold">Inventory Reports</h1>
+          {report && (
+            <button
+              onClick={exportPDF}
+              className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 flex items-center"
+            >
+              <DocumentArrowDownIcon className="h-5 w-5 mr-2" />
+              Export PDF
+            </button>
+          )}
+        </div>
 
         {report && (
           <>
-            {/* Summary Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
               <div className="bg-white rounded-lg shadow p-6">
                 <div className="flex items-center">
@@ -75,7 +148,7 @@ export default function InventoryReports() {
 
               <div className="bg-white rounded-lg shadow p-6">
                 <div className="flex items-center">
-                  <div className="bg-blue-500 p-3 rounded-lg">
+                  <div className="bg-green-500 p-3 rounded-lg">
                     <CubeIcon className="h-6 w-6 text-white" />
                   </div>
                   <div className="ml-4">
@@ -88,7 +161,6 @@ export default function InventoryReports() {
               </div>
             </div>
 
-            {/* Low Stock Alerts */}
             <div className="bg-white rounded-lg shadow p-6 mb-8">
               <h2 className="text-lg font-semibold mb-4 flex items-center">
                 <ExclamationTriangleIcon className="h-5 w-5 text-red-500 mr-2" />
@@ -112,9 +184,9 @@ export default function InventoryReports() {
                     <tbody className="divide-y divide-gray-200">
                       {report.lowStockItems.map((item, index) => (
                         <tr key={index}>
-                          <td className="px-4 py-2">{item.productName}</td>
+                          <td className="px-4 py-2 font-medium">{item.productName}</td>
                           <td className="px-4 py-2">{item.rdcName}</td>
-                          <td className="px-4 py-2 font-medium text-red-600">{item.quantity}</td>
+                          <td className="px-4 py-2 text-red-600 font-medium">{item.quantity}</td>
                           <td className="px-4 py-2">{item.minStockLevel}</td>
                           <td className="px-4 py-2">
                             <span className="bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs font-medium">
@@ -129,7 +201,6 @@ export default function InventoryReports() {
               )}
             </div>
 
-            {/* Stock by RDC */}
             <div className="bg-white rounded-lg shadow p-6">
               <h2 className="text-lg font-semibold mb-4">Stock Distribution by RDC</h2>
               <div className="space-y-4">
@@ -141,7 +212,7 @@ export default function InventoryReports() {
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
                       <div
-                        className="bg-blue-600 h-2 rounded-full"
+                        className="bg-green-600 h-2 rounded-full"
                         style={{
                           width: `${(rdc.itemCount / report.totalProducts) * 100}%`,
                         }}

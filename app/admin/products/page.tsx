@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import AdminLayout from '@/components/AdminLayout';
-import { PencilIcon, PlusIcon } from '@heroicons/react/24/outline';
+import { PencilIcon, PlusIcon, PhotoIcon } from '@heroicons/react/24/outline';
 
 interface Product {
   _id: string;
@@ -11,6 +11,7 @@ interface Product {
   price: number;
   category: string;
   unit: string;
+  image?: string;
   isActive: boolean;
 }
 
@@ -19,6 +20,9 @@ export default function ProductManagement() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>('');
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -43,9 +47,42 @@ export default function ProductManagement() {
     }
   };
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setUploading(true);
+    
     try {
+      let imagePath = editingProduct?.image || '';
+      
+      if (imageFile) {
+        const formData = new FormData();
+        formData.append('file', imageFile);
+        
+        const uploadRes = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
+        
+        const uploadData = await uploadRes.json();
+        if (uploadData.filePath) {
+          imagePath = uploadData.filePath;
+        }
+      }
+
+      console.log("imagePath: ", imagePath);
+
       const url = editingProduct 
         ? `/api/admin/products/${editingProduct._id}`
         : '/api/admin/products';
@@ -58,12 +95,15 @@ export default function ProductManagement() {
         body: JSON.stringify({
           ...formData,
           price: parseFloat(formData.price),
+          image: imagePath,
         }),
       });
 
       if (res.ok) {
         setShowModal(false);
         setEditingProduct(null);
+        setImagePreview('');
+        setImageFile(null);
         setFormData({
           name: '',
           description: '',
@@ -75,6 +115,8 @@ export default function ProductManagement() {
       }
     } catch (error) {
       console.error('Failed to save product:', error);
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -100,6 +142,8 @@ export default function ProductManagement() {
       category: product.category,
       unit: product.unit,
     });
+    setImagePreview(product.image || '');
+    setImageFile(null);
     setShowModal(true);
   };
 
@@ -117,6 +161,8 @@ export default function ProductManagement() {
           <button
             onClick={() => {
               setEditingProduct(null);
+              setImagePreview('');
+              setImageFile(null);
               setFormData({ name: '', description: '', price: '', category: '', unit: '' });
               setShowModal(true);
             }}
@@ -137,6 +183,7 @@ export default function ProductManagement() {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
+                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Image</th>
                     <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Product</th>
                     <th className="hidden sm:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Category</th>
                     <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Price</th>
@@ -148,6 +195,15 @@ export default function ProductManagement() {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {products.map((product) => (
                     <tr key={product._id} className="hover:bg-gray-50">
+                      <td className="px-4 sm:px-6 py-4">
+                        {product.image ? (
+                          <img src={product.image} alt={product.name} className="h-10 w-10 object-cover rounded" />
+                        ) : (
+                          <div className="h-10 w-10 bg-gray-200 rounded flex items-center justify-center">
+                            <PhotoIcon className="h-5 w-5 text-gray-400" />
+                          </div>
+                        )}
+                      </td>
                       <td className="px-4 sm:px-6 py-4">
                         <div>
                           <p className="font-medium text-sm sm:text-base">{product.name}</p>
@@ -262,6 +318,21 @@ export default function ProductManagement() {
                       placeholder="e.g., 1kg, 500g, 1L"
                     />
                   </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Product Image</label>
+                    <div className="mt-1 flex flex-col items-center space-y-4">
+                      {imagePreview && (
+                        <img src={imagePreview} alt="Preview" className="h-32 w-32 object-cover rounded-lg border" />
+                      )}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageChange}
+                        className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                      />
+                    </div>
+                  </div>
                   
                   <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4">
                     <button
@@ -269,6 +340,8 @@ export default function ProductManagement() {
                       onClick={() => {
                         setShowModal(false);
                         setEditingProduct(null);
+                        setImagePreview('');
+                        setImageFile(null);
                       }}
                       className="w-full sm:w-auto px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300"
                     >
@@ -276,9 +349,10 @@ export default function ProductManagement() {
                     </button>
                     <button
                       type="submit"
-                      className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                      disabled={uploading}
+                      className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
                     >
-                      {editingProduct ? 'Update' : 'Create'}
+                      {uploading ? 'Uploading...' : (editingProduct ? 'Update' : 'Create')}
                     </button>
                   </div>
                 </form>

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import CustomerLayout from '@/components/CustomerLayout';
-import { ShoppingCartIcon } from '@heroicons/react/24/outline';
+import { ShoppingCartIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 import { useRouter } from 'next/navigation';
 
 interface Product {
@@ -32,8 +32,8 @@ export default function CustomerProducts() {
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [categories, setCategories] = useState<string[]>([]);
+  const [message, setMessage] = useState({ show: false, text: '', product: '' });
 
-  // Load cart from localStorage on component mount
   useEffect(() => {
     const savedCart = localStorage.getItem('cart');
     if (savedCart) {
@@ -42,10 +42,18 @@ export default function CustomerProducts() {
     fetchProducts();
   }, []);
 
-  // Save cart to localStorage whenever it changes
   useEffect(() => {
     localStorage.setItem('cart', JSON.stringify(cart));
   }, [cart]);
+
+  useEffect(() => {
+    if (message.show) {
+      const timer = setTimeout(() => {
+        setMessage({ ...message, show: false });
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [message.show]);
 
   const fetchProducts = async () => {
     try {
@@ -53,7 +61,6 @@ export default function CustomerProducts() {
       const data = await res.json();
       setProducts(data);
       
-      // Extract unique categories
       const uniqueCategories = [...new Set(data.map((p: Product) => p.category))];
       setCategories(uniqueCategories as string[]);
     } catch (error) {
@@ -85,6 +92,12 @@ export default function CustomerProducts() {
           unit: product.unit,
         },
       ];
+    });
+
+    setMessage({
+      show: true,
+      text: `${product.name} added to cart`,
+      product: product._id
     });
   };
 
@@ -135,7 +148,13 @@ export default function CustomerProducts() {
           </button>
         </div>
 
-        {/* Category Filter */}
+        {message.show && (
+          <div className="fixed top-20 right-4 z-50 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg flex items-center animate-slide-in">
+            <CheckCircleIcon className="h-5 w-5 mr-2" />
+            {message.text}
+          </div>
+        )}
+
         <div className="mb-6">
           <select
             value={selectedCategory}
@@ -157,12 +176,16 @@ export default function CustomerProducts() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredProducts.map((product) => (
               <div key={product._id} className="bg-white rounded-lg shadow overflow-hidden">
-                {product.image && (
+                {product.image ? (
                   <img
                     src={product.image}
                     alt={product.name}
                     className="w-full h-48 object-cover"
                   />
+                ) : (
+                  <div className="w-full h-48 bg-gray-200 flex items-center justify-center">
+                    <span className="text-gray-400">No image</span>
+                  </div>
                 )}
                 <div className="p-4">
                   <h3 className="text-lg font-semibold">{product.name}</h3>
@@ -171,7 +194,7 @@ export default function CustomerProducts() {
                   <div className="mt-2 flex items-center justify-between">
                     <span className="text-sm text-gray-500">{product.category}</span>
                     <span className="text-sm font-medium text-gray-700">
-                      Stock: {product.stockLevel} {product.unit}
+                      Stock: {product.stockLevel} units | {product.unit}
                     </span>
                   </div>
                   
@@ -184,7 +207,7 @@ export default function CustomerProducts() {
                       disabled={product.stockLevel === 0}
                       className={`px-3 py-1 rounded cursor-pointer ${
                         product.stockLevel > 0
-                          ? 'bg-blue-600 text-white hover:bg-blue-700'
+                          ? 'bg-green-600 text-white hover:bg-green-700'
                           : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                       }`}
                     >
@@ -197,7 +220,6 @@ export default function CustomerProducts() {
           </div>
         )}
 
-        {/* Shopping Cart Sidebar */}
         {showCart && (
           <div className="fixed inset-0 overflow-hidden z-50">
             <div className="absolute inset-0 overflow-hidden">

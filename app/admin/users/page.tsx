@@ -9,8 +9,8 @@ interface User {
   name: string;
   email: string;
   role: string;
-  rdcId?: { name: string; _id: string };
-  preferredWarehouse?: { name: string; _id: string };
+  rdcId?: { _id: string; name: string; location: string };
+  preferredWarehouse?: { _id: string; name: string };
   isActive: boolean;
   createdAt: string;
 }
@@ -25,6 +25,7 @@ interface Warehouse {
 export default function UserManagement() {
   const [users, setUsers] = useState<User[]>([]);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+  const [availableRDCs, setAvailableRDCs] = useState<Warehouse[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
@@ -41,6 +42,12 @@ export default function UserManagement() {
     fetchUsers();
     fetchWarehouses();
   }, []);
+
+  useEffect(() => {
+    if (formData.role === 'rdc_staff' || formData.role === 'logistics') {
+      fetchAvailableRDCs(formData.role);
+    }
+  }, [formData.role]);
 
   const fetchUsers = async () => {
     try {
@@ -64,20 +71,38 @@ export default function UserManagement() {
     }
   };
 
+  const fetchAvailableRDCs = async (role:string) => {
+    try {
+      const res = await fetch(`/api/admin/available-rdcs?role=${role}`);
+      const data = await res.json();
+      setAvailableRDCs(data);
+    } catch (error) {
+      console.error('Failed to fetch available RDCs:', error);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const userData = {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const userData: any = {
         name: formData.name,
         email: formData.email,
         password: formData.password,
         role: formData.role,
-        ...(formData.role === 'customer' 
-          ? { preferredWarehouse: formData.preferredWarehouse }
-          : (formData.role === 'rdc_staff' || formData.role === 'logistics')
-          ? { rdcId: formData.rdcId }
-          : {})
       };
+
+      if (formData.role === 'customer' && formData.preferredWarehouse) {
+        userData.preferredWarehouse = formData.preferredWarehouse;
+      }
+
+      if (formData.role === 'rdc_staff' || formData.role === 'logistics') {
+        if (!formData.rdcId) {
+          alert('Please select an RDC');
+          return;
+        }
+        userData.rdcId = formData.rdcId;
+      }
 
       const res = await fetch('/api/admin/users', {
         method: 'POST',
@@ -126,19 +151,6 @@ export default function UserManagement() {
     }
   };
 
-  const editUser = (user: User) => {
-    setEditingUser(user);
-    setFormData({
-      name: user.name,
-      email: user.email,
-      password: '',
-      role: user.role,
-      rdcId: user.rdcId?._id || '',
-      preferredWarehouse: user.preferredWarehouse?._id || '',
-    });
-    setShowModal(true);
-  };
-
   return (
     <AdminLayout>
       <div className="space-y-6">
@@ -176,7 +188,7 @@ export default function UserManagement() {
                   <tr>
                     <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">User</th>
                     <th className="hidden sm:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
-                    <th className="hidden md:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Location</th>
+                    <th className="hidden md:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Assigned RDC</th>
                     <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                     <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                   </tr>
@@ -211,22 +223,14 @@ export default function UserManagement() {
                         </span>
                       </td>
                       <td className="px-4 sm:px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => editUser(user)}
-                            className="text-blue-600 hover:text-blue-900"
-                          >
-                            <PencilIcon className="h-5 w-5" />
-                          </button>
-                          <button
-                            onClick={() => toggleUserStatus(user._id, user.isActive)}
-                            className={`text-sm font-medium ${
-                              user.isActive ? 'text-red-600 hover:text-red-900' : 'text-green-600 hover:text-green-900'
-                            }`}
-                          >
-                            {user.isActive ? 'Deactivate' : 'Activate'}
-                          </button>
-                        </div>
+                        <button
+                          onClick={() => toggleUserStatus(user._id, user.isActive)}
+                          className={`text-sm font-medium ${
+                            user.isActive ? 'text-red-600 hover:text-red-900' : 'text-green-600 hover:text-green-900'
+                          }`}
+                        >
+                          {user.isActive ? 'Deactivate' : 'Activate'}
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -241,7 +245,7 @@ export default function UserManagement() {
             <div className="relative top-20 mx-auto max-w-md bg-white rounded-lg shadow-xl">
               <div className="p-6">
                 <h3 className="text-lg font-medium text-gray-900 mb-4">
-                  {editingUser ? 'Edit User' : 'Add New User'}
+                  Add New User
                 </h3>
                 
                 <form onSubmit={handleSubmit} className="space-y-4">
@@ -267,24 +271,22 @@ export default function UserManagement() {
                     />
                   </div>
                   
-                  {!editingUser && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Password</label>
-                      <input
-                        type="password"
-                        required
-                        value={formData.password}
-                        onChange={(e) => setFormData({...formData, password: e.target.value})}
-                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-                      />
-                    </div>
-                  )}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Password</label>
+                    <input
+                      type="password"
+                      required
+                      value={formData.password}
+                      onChange={(e) => setFormData({...formData, password: e.target.value})}
+                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                    />
+                  </div>
                   
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Role</label>
                     <select
                       value={formData.role}
-                      onChange={(e) => setFormData({...formData, role: e.target.value})}
+                      onChange={(e) => setFormData({...formData, role: e.target.value, rdcId: '', preferredWarehouse: ''})}
                       className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
                     >
                       <option value="customer">Customer</option>
@@ -297,9 +299,7 @@ export default function UserManagement() {
                   
                   {formData.role === 'customer' && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">
-                        Preferred Warehouse Location
-                      </label>
+                      <label className="block text-sm font-medium text-gray-700">Preferred Warehouse Location</label>
                       <select
                         value={formData.preferredWarehouse}
                         onChange={(e) => setFormData({...formData, preferredWarehouse: e.target.value})}
@@ -312,9 +312,6 @@ export default function UserManagement() {
                           </option>
                         ))}
                       </select>
-                      <p className="mt-1 text-xs text-gray-500">
-                        Customers orders will prioritize this warehouse
-                      </p>
                     </div>
                   )}
                   
@@ -328,12 +325,15 @@ export default function UserManagement() {
                         className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
                       >
                         <option value="">Select RDC</option>
-                        {warehouses.map((warehouse) => (
+                        {availableRDCs.map((warehouse) => (
                           <option key={warehouse._id} value={warehouse._id}>
                             {warehouse.name} - {warehouse.location}
                           </option>
                         ))}
                       </select>
+                      {availableRDCs.length === 0 && (
+                        <p className="text-xs text-red-500 mt-1">No RDCs available. All RDCs already have assigned staff.</p>
+                      )}
                     </div>
                   )}
                   
@@ -352,7 +352,7 @@ export default function UserManagement() {
                       type="submit"
                       className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
                     >
-                      {editingUser ? 'Update' : 'Create'}
+                      Create User
                     </button>
                   </div>
                 </form>

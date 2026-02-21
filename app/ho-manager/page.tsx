@@ -8,8 +8,12 @@ import {
   CubeIcon,
   TruckIcon,
   ArrowTrendingUpIcon,
+  DocumentArrowDownIcon,
 } from '@heroicons/react/24/outline';
 import Link from 'next/link';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 
 interface DashboardData {
   sales: {
@@ -22,6 +26,8 @@ interface DashboardData {
     totalProducts: number;
     totalValue: number;
     lowStock: number;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    lowStockItems?: any[];
   };
   delivery: {
     total: number;
@@ -54,24 +60,20 @@ export default function HoManagerDashboard() {
 
   const fetchDashboardData = async () => {
     try {
-      // Fetch sales report
-      const salesRes = await fetch(`/api/reports/sales?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`);
+      const [salesRes, inventoryRes, deliveryRes] = await Promise.all([
+        fetch(`/api/reports/sales?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`),
+        fetch('/api/reports/inventory'),
+        fetch(`/api/reports/delivery?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`),
+      ]);
+
       const salesData = await salesRes.json();
-
-      // Fetch inventory report
-      const inventoryRes = await fetch('/api/reports/inventory');
       const inventoryData = await inventoryRes.json();
-
-      // Fetch delivery report
-      const deliveryRes = await fetch(`/api/reports/delivery?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`);
       const deliveryData = await deliveryRes.json();
 
-      // Calculate today's sales (simplified - in real app would have separate API)
       const today = new Date().toISOString().split('T')[0];
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const todaySales = salesData.dailySales?.find((d: any) => d._id === today)?.sales || 0;
 
-      // Calculate week sales
       const weekAgo = new Date();
       weekAgo.setDate(weekAgo.getDate() - 7);
       const weekSales = salesData.dailySales
@@ -85,12 +87,13 @@ export default function HoManagerDashboard() {
           today: todaySales,
           week: weekSales,
           month: salesData.totalSales,
-          growth: 15.5, // Mock growth percentage
+          growth: 15.5,
         },
         inventory: {
           totalProducts: inventoryData.totalProducts,
           totalValue: inventoryData.totalValue,
           lowStock: inventoryData.lowStockItems?.length || 0,
+          lowStockItems: inventoryData.lowStockItems,
         },
         delivery: {
           total: deliveryData.totalDeliveries,
@@ -107,6 +110,97 @@ export default function HoManagerDashboard() {
     }
   };
 
+  const exportInventoryPDF = () => {
+    if (!data) return;
+    
+    const doc = new jsPDF();
+    
+    doc.setFontSize(18);
+    doc.text('Inventory Report', 14, 22);
+    doc.setFontSize(11);
+    doc.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 32);
+    
+    doc.setFontSize(14);
+    doc.text('Summary', 14, 42);
+    
+    doc.setFontSize(11);
+    doc.text(`Total Products: ${data.inventory.totalProducts}`, 14, 52);
+    doc.text(`Total Inventory Value: Rs. ${data.inventory.totalValue.toLocaleString()}`, 14, 58);
+    doc.text(`Low Stock Items: ${data.inventory.lowStock}`, 14, 64);
+    
+    if (data.inventory.lowStockItems && data.inventory.lowStockItems.length > 0) {
+      doc.setFontSize(14);
+      doc.text('Low Stock Items', 14, 78);
+      
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const lowStockData = data.inventory.lowStockItems.map((item: any) => [
+        item.productName,
+        item.rdcName,
+        item.quantity.toString(),
+        item.minStockLevel.toString()
+      ]);
+      
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      autoTable(doc, {
+        startY: 82,
+        head: [['Product', 'RDC', 'Current', 'Min Level']],
+        body: lowStockData,
+      });
+    }
+    
+    doc.save(`inventory-report-${new Date().toISOString().split('T')[0]}.pdf`);
+  };
+
+  const exportPerformancePDF = () => {
+    if (!data) return;
+    
+    const doc = new jsPDF();
+    
+    doc.setFontSize(18);
+    doc.text('Performance Analytics Report', 14, 22);
+    doc.setFontSize(11);
+    doc.text(`Period: ${dateRange.startDate} to ${dateRange.endDate}`, 14, 32);
+    doc.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 38);
+    
+    doc.setFontSize(14);
+    doc.text('Sales Performance', 14, 48);
+    
+    doc.setFontSize(11);
+    doc.text(`Total Sales: Rs. ${data.sales.month.toLocaleString()}`, 14, 58);
+    doc.text(`Total Orders: ${data.rdcPerformance.reduce((sum, r) => sum + r.orderCount, 0)}`, 14, 64);
+    doc.text(`Growth: ${data.sales.growth}%`, 14, 70);
+    
+    doc.setFontSize(14);
+    doc.text('RDC Performance', 14, 84);
+    
+    const rdcData = data.rdcPerformance.map(rdc => [
+      rdc.rdcName,
+      `Rs. ${rdc.totalSales.toLocaleString()}`,
+      rdc.orderCount.toString()
+    ]);
+    
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    autoTable(doc,{
+      startY: 88,
+      head: [['RDC', 'Total Sales', 'Orders']],
+      body: rdcData,
+    });
+    
+    doc.setFontSize(14);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    doc.text('Delivery Performance', 14, (doc as any).lastAutoTable.finalY + 10);
+    
+    doc.setFontSize(11);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    doc.text(`Total Deliveries: ${data.delivery.total}`, 14, (doc as any).lastAutoTable.finalY + 20);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    doc.text(`Completed: ${data.delivery.completed}`, 14, (doc as any).lastAutoTable.finalY + 26);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    doc.text(`On-Time Rate: ${data.delivery.onTime}%`, 14, (doc as any).lastAutoTable.finalY + 32);
+    
+    doc.save(`performance-report-${dateRange.startDate}-to-${dateRange.endDate}.pdf`);
+  };
+
   if (loading) {
     return (
       <HoLayout>
@@ -120,9 +214,26 @@ export default function HoManagerDashboard() {
   return (
     <HoLayout>
       <div className="p-6">
-        <h1 className="text-2xl font-bold mb-6">Executive Dashboard</h1>
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold">Executive Dashboard</h1>
+          <div className="flex gap-2">
+            <button
+              onClick={exportInventoryPDF}
+              className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 flex items-center"
+            >
+              <DocumentArrowDownIcon className="h-5 w-5 mr-2" />
+              Inventory PDF
+            </button>
+            <button
+              onClick={exportPerformancePDF}
+              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 flex items-center"
+            >
+              <DocumentArrowDownIcon className="h-5 w-5 mr-2" />
+              Performance PDF
+            </button>
+          </div>
+        </div>
 
-        {/* Date Range Filter */}
         <div className="bg-white rounded-lg shadow p-4 mb-6">
           <div className="flex items-center space-x-4">
             <div>
@@ -148,17 +259,16 @@ export default function HoManagerDashboard() {
 
         {data && (
           <>
-            {/* Key Metrics */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
               <div className="bg-white rounded-lg shadow p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Todays Sales</p>
+                    <p className="text-sm font-medium text-gray-600">Today Sales</p>
                     <p className="text-2xl font-semibold text-gray-900">
                       Rs. {data.sales.today.toLocaleString()}
                     </p>
                   </div>
-                  <div className="bg-blue-500 p-3 rounded-lg">
+                  <div className="bg-green-500 p-3 rounded-lg">
                     <CurrencyDollarIcon className="h-6 w-6 text-white" />
                   </div>
                 </div>
@@ -194,7 +304,7 @@ export default function HoManagerDashboard() {
                       {data.delivery.completed}/{data.delivery.total}
                     </p>
                   </div>
-                  <div className="bg-blue-500 p-3 rounded-lg">
+                  <div className="bg-purple-500 p-3 rounded-lg">
                     <TruckIcon className="h-6 w-6 text-white" />
                   </div>
                 </div>
@@ -211,7 +321,7 @@ export default function HoManagerDashboard() {
                       Rs. {data.sales.month.toLocaleString()}
                     </p>
                   </div>
-                  <div className="bg-blue-500 p-3 rounded-lg">
+                  <div className="bg-orange-500 p-3 rounded-lg">
                     <ChartBarIcon className="h-6 w-6 text-white" />
                   </div>
                 </div>
@@ -221,7 +331,6 @@ export default function HoManagerDashboard() {
               </Link>
             </div>
 
-            {/* RDC Performance */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
               <div className="bg-white rounded-lg shadow p-6">
                 <h2 className="text-lg font-semibold mb-4">RDC Performance</h2>
@@ -246,7 +355,6 @@ export default function HoManagerDashboard() {
                 </div>
               </div>
 
-              {/* Top Products */}
               <div className="bg-white rounded-lg shadow p-6">
                 <h2 className="text-lg font-semibold mb-4">Top Selling Products</h2>
                 {data.topProducts.length === 0 ? (
@@ -270,7 +378,35 @@ export default function HoManagerDashboard() {
               </div>
             </div>
 
-            {/* Alerts Section */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Link
+                href="/ho-manager/sales"
+                className="bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg p-6 hover:shadow-lg transition"
+              >
+                <h3 className="text-lg font-semibold mb-2">Sales Report</h3>
+                <p className="text-blue-100 text-sm mb-4">View detailed sales analytics and trends</p>
+                <span className="text-white underline">View Report →</span>
+              </Link>
+
+              <Link
+                href="/ho-manager/inventory"
+                className="bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg p-6 hover:shadow-lg transition"
+              >
+                <h3 className="text-lg font-semibold mb-2">Inventory Report</h3>
+                <p className="text-green-100 text-sm mb-4">Check stock levels and inventory value</p>
+                <span className="text-white underline">View Report →</span>
+              </Link>
+
+              <Link
+                href="/ho-manager/analytics"
+                className="bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg p-6 hover:shadow-lg transition"
+              >
+                <h3 className="text-lg font-semibold mb-2">Performance Analytics</h3>
+                <p className="text-purple-100 text-sm mb-4">Monitor delivery and operational KPIs</p>
+                <span className="text-white underline">View Analytics →</span>
+              </Link>
+            </div>
+
             {data.inventory.lowStock > 0 && (
               <div className="mt-6 bg-red-50 border border-red-200 rounded-lg p-4">
                 <div className="flex items-center justify-between">

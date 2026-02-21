@@ -3,10 +3,8 @@ import dbConnect from '@/lib/dbConnect';
 import RDC from '@/models/rdc';
 import { withAuth } from '@/lib/middleware';
 
-
-async function 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-getRDCs(req: NextRequest, user: any) {
+async function getRDCs(req: NextRequest, user: any) {
   try {
     await dbConnect();
     
@@ -27,6 +25,14 @@ async function createRDC(req: NextRequest, user: any) {
     await dbConnect();
     
     const { name, location, region, address, contactNumber, managerName, managerContact } = await req.json();
+
+    const existingRDC = await RDC.findOne({ name });
+    if (existingRDC) {
+      return NextResponse.json(
+        { error: 'RDC with this name already exists' },
+        { status: 400 }
+      );
+    }
 
     const newRDC = await RDC.create({
       name,
