@@ -21,7 +21,7 @@ export async function GET() {
 
     await dbConnect();
     
-    const user = await User.findById(payload.userId).populate('rdcId');
+    const user = await User.findById(payload.userId).populate('rdcId').populate('preferredWarehouse');
     
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
@@ -33,7 +33,7 @@ export async function GET() {
         name: user.name,
         email: user.email,
         role: user.role,
-        rdcId: user.rdcId,
+        rdcId: user?.preferredWarehouse === null ? user.rdcId :  user?.preferredWarehouse,
       },
     });
   } catch (error) {

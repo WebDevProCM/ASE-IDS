@@ -23,7 +23,7 @@ async function updateTransfer(req: NextRequest, user: any, { params }: { params:
 
     // 2. Logic for Approval/Rejection
     if (status === 'approved' || status === 'rejected') {
-      if (transfer.toRDC.toString() !== user.rdcId) {
+      if (transfer.toRDC.toString() !== (user.rdcId as Record<string, string>)?._id) {
         return NextResponse.json(
           { error: 'Only destination RDC can approve/reject' },
           { status: 403 }
@@ -33,7 +33,7 @@ async function updateTransfer(req: NextRequest, user: any, { params }: { params:
 
     // 3. Logic for Cancellation
     if (status === 'cancelled') {
-      if (transfer.fromRDC.toString() !== user.rdcId) {
+      if (transfer.fromRDC.toString() !== (user.rdcId as Record<string, string>)?._id) {
         return NextResponse.json(
           { error: 'Only source RDC can cancel' },
           { status: 403 }

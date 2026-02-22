@@ -17,8 +17,8 @@ async function getMyRdcTransfers(req: NextRequest, user: any) {
 
     const transfers = await Transfer.find({
       $or: [
-        { fromRDC: user.rdcId },
-        { toRDC: user.rdcId }
+        { fromRDC: (user.rdcId as Record<string, string>)?._id },
+        { toRDC: (user.rdcId as Record<string, string>)?._id }
       ]
     })
     .populate('fromRDC', 'name location')

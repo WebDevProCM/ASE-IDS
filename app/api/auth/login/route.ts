@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const user = await User.findOne({ email }).populate('rdcId');
+    const user = await User.findOne({ email }).populate('rdcId').populate('preferredWarehouse');
     console.log("user", user)
     
     if (!user) {

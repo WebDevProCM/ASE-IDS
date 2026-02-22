@@ -29,7 +29,7 @@ async function cancelOrderItem(req: NextRequest, user: any) {
 
     const item = order.items.id(orderItemId);
     
-    if (user.role === 'rdc_staff' && item.rdcId.toString() !== user.rdcId) {
+    if (user.role === 'rdc_staff' && item.rdcId.toString() !== (user.rdcId as Record<string, string>)?._id) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 403 }

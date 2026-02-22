@@ -17,7 +17,7 @@ async function getMyRdcInventory(req: NextRequest, user: TokenPayload) {
       );
     }
     
-    const inventory = await Inventory.find({ rdcId: user.rdcId })
+    const inventory = await Inventory.find({ rdcId: (user.rdcId as Record<string, string>)?._id })
     .populate('productId');
     
   

@@ -39,7 +39,7 @@ async function createOrder(req: NextRequest, user: any) {
 
       console.log("userOrder: ", user);
       inventory = await Inventory.findOne({
-        rdcId: user.rdcId,
+        rdcId: (user.rdcId as Record<string, string>)?._id,
         productId: item.productId,
         quantity: { $gte: item.quantity }
       }).populate('rdcId');

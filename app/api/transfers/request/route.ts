@@ -28,7 +28,7 @@ async function requestTransfer(req: NextRequest, user: any) {
     for (const item of items) {
       const inventory = await Inventory.findOne({
         productId: item.productId,
-        rdcId: user.rdcId,
+        rdcId: (user.rdcId as Record<string, string>)?._id,
       });
 
       if (!inventory || inventory.quantity < item.quantity) {
@@ -43,7 +43,7 @@ async function requestTransfer(req: NextRequest, user: any) {
 
     const transfer = await Transfer.create({
       transferNumber,
-      fromRDC: user.rdcId,
+      fromRDC: (user.rdcId as Record<string, string>)?._id,
       toRDC,
       items: items.map(item => ({
         productId: item.productId,

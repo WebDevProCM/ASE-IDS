@@ -7,7 +7,7 @@ export interface TokenPayload {
   userId: string;
   email: string;
   role: string;
-  rdcId?: string;
+  rdcId?: string | Record<string,string>;
 }
 
 export function verifyToken(token: string): TokenPayload | null {

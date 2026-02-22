@@ -16,7 +16,7 @@ async function getRdcPendingOrders(req: NextRequest, user: any) {
     }
 
     const orders = await Order.find({
-      'items.rdcId': user.rdcId,
+      'items.rdcId': user.rdcId._id,
     })
     .populate('customerId', 'name')
     .populate('items.productId', 'name unit')
@@ -25,7 +25,7 @@ async function getRdcPendingOrders(req: NextRequest, user: any) {
     const rdcItems = orders.flatMap(order => 
       order.items
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .filter((item: any) => item.rdcId.toString() === user.rdcId)
+        .filter((item: any) => item.rdcId.toString() === user.rdcId._id)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .map((item: any) => ({
           ...item.toObject(),

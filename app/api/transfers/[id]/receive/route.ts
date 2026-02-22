@@ -21,7 +21,7 @@ async function receiveTransfer(req: NextRequest, user: any, { params }: { params
       return NextResponse.json({ error: 'Transfer already completed' }, { status: 400 });
     }
 
-    if (transfer.toRDC.toString() !== user.rdcId) {
+    if (transfer.toRDC.toString() !== (user.rdcId as Record<string, string>)?._id) {
       return NextResponse.json({ error: 'Only destination RDC can receive' }, { status: 403 });
     }
 
@@ -31,7 +31,7 @@ async function receiveTransfer(req: NextRequest, user: any, { params }: { params
 
     for (const item of transfer.items) {
       await Inventory.findOneAndUpdate(
-        { productId: item.productId, rdcId: user.rdcId },
+        { productId: item.productId, rdcId: (user.rdcId as Record<string, string>)?._id },
         { 
           $inc: { quantity: item.quantity },
           $setOnInsert: { minStockLevel: 10, maxStockLevel: 100 } 
