@@ -167,36 +167,8 @@ async function seedData() {
         isActive: true,
       },
       {
-        name: 'Mary Perera - Grocery Store',
+        name: 'Mary Store - Grocery Store',
         email: 'mary.grocery@example.com',
-        password: 'customer123',
-        role: 'customer',
-        isActive: true,
-      },
-      {
-        name: 'Ranil Fernando - Restaurant',
-        email: 'ranil.restaurant@example.com',
-        password: 'customer123',
-        role: 'customer',
-        isActive: true,
-      },
-      {
-        name: 'Shyamali de Silva - Retail Shop',
-        email: 'shyamali.shop@example.com',
-        password: 'customer123',
-        role: 'customer',
-        isActive: true,
-      },
-      {
-        name: 'Antony Raj - Wholesale Buyer',
-        email: 'antony.wholesale@example.com',
-        password: 'customer123',
-        role: 'customer',
-        isActive: true,
-      },
-      {
-        name: 'Fathima Rizwan - Mini Mart',
-        email: 'fathima.mart@example.com',
         password: 'customer123',
         role: 'customer',
         isActive: true,
@@ -216,7 +188,7 @@ async function seedData() {
         price: 2800,
         category: 'Rice & Grains',
         unit: '10kg',
-        image: '/products/basmati-rice.jpg',
+        image: '/images/products/basmati-rice.jpg',
         isActive: true,
       },
       {
@@ -225,7 +197,7 @@ async function seedData() {
         price: 3200,
         category: 'Rice & Grains',
         unit: '25kg',
-        image: '/products/nadu-rice.jpg',
+        image: '/images/products/nadu-rice.jpg',
         isActive: true,
       },
       {
@@ -234,7 +206,7 @@ async function seedData() {
         price: 1250,
         category: 'Rice & Grains',
         unit: '5kg',
-        image: '/products/keeri-samba.jpg',
+        image: '/images/products/keeri-samba.jpg',
         isActive: true,
       },
       
@@ -245,7 +217,7 @@ async function seedData() {
         price: 380,
         category: 'Pulses',
         unit: '1kg',
-        image: '/products/red-dhal.jpg',
+        image: '/images/products/red-dhal.jpg',
         isActive: true,
       },
       {
@@ -254,7 +226,7 @@ async function seedData() {
         price: 240,
         category: 'Pulses',
         unit: '500g',
-        image: '/products/green-gram.jpg',
+        image: '/images/products/green-gram.webp',
         isActive: true,
       },
       {
@@ -263,7 +235,7 @@ async function seedData() {
         price: 450,
         category: 'Pulses',
         unit: '1kg',
-        image: '/products/chickpeas.jpg',
+        image: '/images/products/chickpeas.jpg',
         isActive: true,
       },
       
@@ -274,7 +246,7 @@ async function seedData() {
         price: 890,
         category: 'Cooking Oil',
         unit: '1L',
-        image: '/products/coconut-oil.jpg',
+        image: '/images/products/coconut-oil.jpg',
         isActive: true,
       },
       {
@@ -283,7 +255,7 @@ async function seedData() {
         price: 950,
         category: 'Cooking Oil',
         unit: '2L',
-        image: '/products/palm-oil.jpg',
+        image: '/images/products/palm-oil.jpg',
         isActive: true,
       },
       {
@@ -292,7 +264,7 @@ async function seedData() {
         price: 750,
         category: 'Cooking Oil',
         unit: '1L',
-        image: '/products/sunflower-oil.jpg',
+        image: '/images/products/sunflower-oil.jpeg',
         isActive: true,
       },
       
@@ -303,7 +275,7 @@ async function seedData() {
         price: 1850,
         category: 'Flour & Baking',
         unit: '10kg',
-        image: '/products/wheat-flour.jpg',
+        image: '/images/products/wheat-flour.webp',
         isActive: true,
       },
       {
@@ -312,7 +284,7 @@ async function seedData() {
         price: 420,
         category: 'Flour & Baking',
         unit: '2kg',
-        image: '/products/self-raising-flour.jpg',
+        image: '/images/products/self-raising-flour.jpg',
         isActive: true,
       },
       {
@@ -321,7 +293,7 @@ async function seedData() {
         price: 85,
         category: 'Flour & Baking',
         unit: '100g',
-        image: '/products/baking-powder.jpg',
+        image: '/images/products/baking-powder.jpg',
         isActive: true,
       },
       
@@ -332,7 +304,7 @@ async function seedData() {
         price: 490,
         category: 'Sugar & Sweeteners',
         unit: '2kg',
-        image: '/products/white-sugar.jpg',
+        image: '/images/products/white-sugar.jpg',
         isActive: true,
       },
       {
@@ -341,7 +313,7 @@ async function seedData() {
         price: 280,
         category: 'Sugar & Sweeteners',
         unit: '1kg',
-        image: '/products/brown-sugar.jpg',
+        image: '/images/products/brown-sugar.jpg',
         isActive: true,
       },
       
@@ -352,7 +324,7 @@ async function seedData() {
         price: 680,
         category: 'Beverages',
         unit: '500g',
-        image: '/products/ceylon-tea.jpg',
+        image: '/images/products/ceylon-tea.webp',
         isActive: true,
       },
       {
@@ -361,7 +333,7 @@ async function seedData() {
         price: 1250,
         category: 'Beverages',
         unit: '200g',
-        image: '/products/instant-coffee.jpg',
+        image: '/images/products/instant-coffee.webp',
         isActive: true,
       },
       {
@@ -370,7 +342,7 @@ async function seedData() {
         price: 580,
         category: 'Beverages',
         unit: '400g',
-        image: '/products/chocolate-powder.jpg',
+        image: '/images/products/chocolate-powder.jpg',
         isActive: true,
       },
       
@@ -381,7 +353,7 @@ async function seedData() {
         price: 450,
         category: 'Canned Goods',
         unit: '425g',
-        image: '/products/tinned-fish.jpg',
+        image: '/images/products/tinned-fish.jpg',
         isActive: true,
       },
       {
@@ -390,7 +362,7 @@ async function seedData() {
         price: 320,
         category: 'Canned Goods',
         unit: '400g',
-        image: '/products/baked-beans.jpg',
+        image: '/images/products/baked-beans.jpeg',
         isActive: true,
       },
       
@@ -401,7 +373,7 @@ async function seedData() {
         price: 1450,
         category: 'Dairy & Chilled',
         unit: '1kg',
-        image: '/products/milk-powder.jpg',
+        image: '/images/products/milk-powder.webp',
         isActive: true,
       },
       {
@@ -410,7 +382,7 @@ async function seedData() {
         price: 380,
         category: 'Dairy & Chilled',
         unit: '500g',
-        image: '/products/margarine.jpg',
+        image: '/images/products/margarine.jpg',
         isActive: true,
       },
       
@@ -421,7 +393,7 @@ async function seedData() {
         price: 380,
         category: 'Personal Care',
         unit: '4pcs',
-        image: '/products/bath-soap.jpg',
+        image: '/images/products/bath-soap.jpg',
         isActive: true,
       },
       {
@@ -430,7 +402,7 @@ async function seedData() {
         price: 290,
         category: 'Personal Care',
         unit: '150g',
-        image: '/products/toothpaste.jpg',
+        image: '/images/products/toothpaste.jpg',
         isActive: true,
       },
       
@@ -441,7 +413,7 @@ async function seedData() {
         price: 680,
         category: 'Cleaning Products',
         unit: '2kg',
-        image: '/products/washing-powder.jpg',
+        image: '/images/products/washing-powder.jpg',
         isActive: true,
       },
       {
@@ -450,7 +422,7 @@ async function seedData() {
         price: 420,
         category: 'Cleaning Products',
         unit: '1L',
-        image: '/products/dish-wash.jpg',
+        image: '/images/products/dish-wash.jpg',
         isActive: true,
       },
     ]);
