@@ -3,12 +3,17 @@ import dbConnect from '@/lib/dbConnect';
 import Inventory from '@/models/inventory';
 import { withAuth } from '@/lib/middleware';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function updateInventory(req: NextRequest, user: any, { params }: { params: { id: string } }) {
+async function updateInventory(
+  req: NextRequest,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  user: any,
+  params: { id: string }
+) {
   try {
     await dbConnect();
-    
-    const { quantity, minStockLevel, maxStockLevel } = await req.json();
+
+    const body = await req.json();
+    const { quantity, minStockLevel, maxStockLevel } = body;
 
     const inventory = await Inventory.findByIdAndUpdate(
       params.id,
@@ -34,6 +39,7 @@ async function updateInventory(req: NextRequest, user: any, { params }: { params
     });
   } catch (error) {
     console.error('Update inventory error:', error);
+
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -41,6 +47,16 @@ async function updateInventory(req: NextRequest, user: any, { params }: { params
   }
 }
 
-export const PATCH = (req: NextRequest, { params }: { params: { id: string } }) => 
+export async function PATCH(
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  const params = await context.params; 
+
+  return withAuth(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  withAuth((req: NextRequest, user: any) => updateInventory(req, user, { params }), ['admin']);
+    (req: NextRequest, user: any) =>
+      updateInventory(req, user, params),
+    ['admin']
+  )(req);
+}

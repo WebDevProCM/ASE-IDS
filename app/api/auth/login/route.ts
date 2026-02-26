@@ -20,6 +20,7 @@ export async function POST(req: NextRequest) {
 
     const user = await User.findOne({ email }).populate('rdcId').populate('preferredWarehouse');
     console.log("user", user)
+    console.log("user", password);
     
     if (!user) {
       return NextResponse.json(
@@ -27,8 +28,9 @@ export async function POST(req: NextRequest) {
         { status: 401 }
       );
     }
-
+    
     const isPasswordValid = await user.comparePassword(password);
+    console.log("isPasswordValid", isPasswordValid);
     
     if (!isPasswordValid) {
       return NextResponse.json(
